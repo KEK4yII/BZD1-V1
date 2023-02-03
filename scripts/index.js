@@ -7,7 +7,6 @@ let main = document.querySelector("main");
 
 //     main.innerHTML += card;
 // });
-
 let cards = document.getElementsByClassName("card");
 for (let i = 0, cnt = cards.length; i < cnt; i++) {
     const width = cards[i].offsetWidth;
@@ -31,7 +30,7 @@ closePopupForm.addEventListener("click", () => {
     popupForm.parentElement.classList.remove("active");
 })
 
-const api = new Api("alexandersavinov");
+const api = new Api("test");
 let form = document.forms[0];
 form.img_link.addEventListener("change", (e) => {
     form.firstElementChild.style.backgroundImage = `url(${e.target.value})`
@@ -57,15 +56,28 @@ form.addEventListener("submit", e => {
     }
     console.log(body);
     api.addCat(body)
-        .then(res => res.json())
-        .then(data => {
-            if (data.message === "ok") {
-                form.reset();
-                closePopupForm.click();
-            } else {
-                console.log(data);
-            }
-        })
+    .then(res => res.json())
+    .then(data => {
+        if (data.message === "ok") {
+            form.reset();
+            closePopupForm.click();
+            api.getCat(body.id)
+                .then(res => res.json())
+                .then(cat => {
+                    if (cat.message === "ok") {
+                        catsData.push(cat.data);
+                        localStorage.setItem("cats", JSON.stringify(catsData));
+
+                        getCats(api, catsData);
+                    } else {
+                        console.log(cat);
+                    }
+                })
+        } else {
+            console.log(data);
+            api.getIds().then(r => r.json()).then(d => console.log(d));
+        }
+    })
 })
 
 const updCards = function (data) {
@@ -86,11 +98,23 @@ const updCards = function (data) {
     }
 }
 
-const getCats = function (api) {
-    api.getCats()
-        .then(res => res.json())
-        .then(data => {
-            updCards(data.data);
-        })
+let catsData = localStorage.getItem("cats");
+catsData = catsData ? JSON.parse(catsData) : [];
+const getCats = function (api, store) {
+    if (!store.length) {
+        api.getCats()
+            .then(res => res.json())
+            .then(data => {
+                console.log(data);
+                if (data.message === "ok") {
+                    localStorage.setItem("cats", JSON.stringify(data.data));
+                    catsData = [...data.data];
+                    updCards(data.data);
+                }
+            })
+    } else {
+        updCards(store);
+    }
 }
-getCats(api);
+getCats(api, catsData);
+
